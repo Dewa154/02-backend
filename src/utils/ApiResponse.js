@@ -6,3 +6,5 @@ class ApiResponse {
         thia.success = statusCode < 400
     }
 }
+
+export {ApiResponse}
