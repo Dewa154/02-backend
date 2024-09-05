@@ -9,7 +9,7 @@ import { DB_NAME } from "./constants";
 */
 
 dotenv.config({
-    path: './env'
+    path: './.env'
 })
 
 
