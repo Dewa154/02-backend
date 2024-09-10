@@ -332,7 +332,7 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
     
     const deletedResponse = await deleteFromCloudinary(currentCoverUrl.coverImage)
 
-    console.log(deletedResponse);
+    // console.log(deletedResponse);
 
     if(!deletedResponse){
         throw new ApiError(501, "Couldn't delete previous coverImage image")
