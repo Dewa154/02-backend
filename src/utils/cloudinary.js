@@ -1,4 +1,5 @@
 import {v2 as cloudinary} from "cloudinary"
+import { response } from "express";
 import fs from "fs"
 
 
@@ -17,7 +18,9 @@ const uploadOnCloudinary = async (localFilePath) => {
         const response = await cloudinary.uploader.upload(localFilePath, {
             resource_type: "auto"
         })
+
         // file has been uploaded successfull
+
         // console.log("file is uploaded in cloudinary", response.url);
         fs.unlinkSync(localFilePath)
         return response;
@@ -28,6 +31,36 @@ const uploadOnCloudinary = async (localFilePath) => {
     }
 }
 
+const deleteFromCloudinary = async(cloudinaryPath, filetype="image") => {
+    try {
+        let public_id = ""
+        for(let i = cloudinaryPath.length-1; i>=0; i--) // fixed the decrement operator
+        {
+            if(cloudinaryPath[i] != "/")
+                public_id = cloudinaryPath[i] + public_id; // concatenate the characters
+            else
+                break;
+        }
 
-export {uploadOnCloudinary}
+        // no need to reverse the string, we already built it in reverse order
+        public_id = public_id.split('.').shift(); // remove the file extension
+
+        // console.log("Image public_id: ", public_id);
+
+        const response = await cloudinary.api.delete_resources(
+            [{ public_id, type: 'upload', resource_type: filetype }]
+        )
+        
+        // console.log(response);
+        
+        return response
+
+    } catch (error) {
+        console.log("Error", error);
+        
+    }
+}
+
+
+export {uploadOnCloudinary, deleteFromCloudinary}
 

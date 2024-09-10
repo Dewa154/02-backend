@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, { connect } from "mongoose";
 import {Comment} from "../models/comment.model.js"
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
@@ -6,54 +6,104 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 
 const getVideoComments = asyncHandler(async (req, res) => {
     const {videoId} = req.params
+
     const {page = 1, limit = 10} = req.query
-    if (!isValidObjectId(videoId)) {
-        throw new ApiError(400, "Invalid video ID")
+
+    if(!videoId || videoId === ":videoId"){
+        throw new ApiError(400, "Video ID is required")
     }
-    const comments = await Comment.find({videoId})
-    .sort({createdAt: -1})
-    .limit(limit * 1)
-    .skip((page - 1) * limit)
-    res.json(new ApiResponse(200, "Comments fetched successfully", comments))
-    const totalComments = await Comment.countDocuments({videoId})
-    res.json(new ApiResponse(200, "Total comments", totalComments))
+
+    const options = {
+        page,
+        limit,
+    }
+
+    const allComments = Comment.aggregate([
+        {
+            $match: {
+                video: new mongoose.Types.ObjectId(videoId)
+            }
+        }
+    ])
+
+    const response = await allComments.paginateExec(options)
+
+    if(!response){
+        throw new ApiError(500, "Error is fetching comments for video")
+    }
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, response.docs, "Comments fetched successfully"))
 })
 
 const addComment = asyncHandler(async (req, res) => {
+    
     const {videoId} = req.params
-    const {comment} = req.body
-    if (!isValidObjectId(videoId)) {
-        throw new ApiError(400, "Invalid video ID")
+    const {content} = req.body
+
+    if(!content || content?.trim() === ""){
+        throw new ApiError(400, "Content is required")
     }
-    const newComment = new Comment({videoId, comment, userId: req.user._id})
-    await newComment.save()
-    res.json(new ApiResponse(201, "Comment added successfully", newComment))
+
+    if(!videoId || videoId?.trim() === ""){
+        throw new ApiError(400, "Video ID is required")
+    }
+
+    const comment = await Comment.create({
+        content,
+        video: videoId,
+        owner: req.user?.id
+    })
+
+    if(!comment){
+        throw new ApiError(500, "Some error occured while adding comment")
+    }
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, comment, "Comment Added Successfully"))
     
 })
 
 const updateComment = asyncHandler(async (req, res) => {
-    const {commentId} = req.params
-    const {comment} = req.body
-    if (!isValidObjectId(commentId)) {
-        throw new ApiError(400, "Invalid comment ID")
+    const {commentId} = req.body
+
+    if(!commentId || commentId === ':commentId'){
+        throw new ApiError(400, "Valid commentId required")
     }
-    const updatedComment = await Comment.findByIdAndUpdate(commentId, {comment}, {new: true})
-    if (!updatedComment) {
-        throw new ApiError(404, "Comment not found")
+
+    const comment = await Comment.findById(commentId)
+
+    if(!comment){
+        throw new ApiError(404, "couldn't find the comment")
     }
-    res.json(new ApiResponse(200, "Comment updated successfully", updatedComment))
+
+    comment.content = content
+
+    comment.save()
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, comment, "Comment updated successfully"))
 })
 
 const deleteComment = asyncHandler(async (req, res) => {
     const {commentId} = req.params
-    if (!isValidObjectId(commentId)) {
-        throw new ApiError(400, "Invalid comment ID")
+
+    if(!commentId || commentId === ':commentId'){
+        throw new ApiError(400, "Valid commentId required")
     }
-    const deletedComment = await Comment.findByIdAndDelete(commentId)
-    if (!deletedComment) {
+
+    const comment = await Comment.deleteOne({_id: commentId})
+
+    if(!comment){
         throw new ApiError(404, "Comment not found")
     }
-    res.json(new ApiResponse(200, "Comment deleted successfully", deletedComment))
+
+    return res
+       .status(200)
+       .json(new ApiResponse(200, comment, "Comment deleted successfully"))
 })
 
 export {

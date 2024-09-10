@@ -3,7 +3,7 @@ import {
     deleteVideo,
     getAllVideos,
     getVideoById,
-    publishAllVideo,
+    publishAVideo,
     togglePublishStatus,
     updateVideo
 } from "../controllers/video.controller.js"
@@ -19,7 +19,7 @@ router
     .post(
         upload.fields([
             {
-                name: "thumbnail",
+                name: "videoFile",
                 maxCount: 1
             },
             {
@@ -27,7 +27,7 @@ router
                 maxCount: 1
             },
         ]),
-        publishAllVideo
+        publishAVideo
     );
 
 router
